@@ -11,6 +11,22 @@ import CoreData
 import GoogleMaps
 import GooglePlaces
 
+//All of these methods are needed to be able to use [] notation on a String. Like str[3] gets the fourth character
+extension String {
+    subscript(i: Int) -> String {
+        guard i >= 0 && i < characters.count else { return "" }
+        return String(self[index(startIndex, offsetBy: i)])
+    }
+    subscript(range: Range<Int>) -> String {
+        let lowerIndex = index(startIndex, offsetBy: max(0,range.lowerBound), limitedBy: endIndex) ?? endIndex
+        return substring(with: lowerIndex..<(index(lowerIndex, offsetBy: range.upperBound - range.lowerBound, limitedBy: endIndex) ?? endIndex))
+    }
+    subscript(range: ClosedRange<Int>) -> String {
+        let lowerIndex = index(startIndex, offsetBy: max(0,range.lowerBound), limitedBy: endIndex) ?? endIndex
+        return substring(with: lowerIndex..<(index(lowerIndex, offsetBy: range.upperBound - range.lowerBound + 1, limitedBy: endIndex) ?? endIndex))
+    }
+}
+
 class SecondController: UIViewController, CLLocationManagerDelegate {
     
     @IBOutlet weak var mapView: GMSMapView!
@@ -24,15 +40,18 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     var didFindMyLocation = false
     var routeButton = UIButton()
     var path = GMSMutablePath()
-    var polyButton = UIButton()
+    var favButton = UIButton()
     var blah = GMSPolyline()
     var drivingMethoder : String!
     var allPoly : [GMSPolyline] = []
     var mapPolylines = UIButton()
     var deleteButton = UIButton()
+    var navButton = UIButton()
     var thePath = GMSPolyline()
-    var theJson : NSDictionary!
-    var sumTime = 0
+    var endButton = UIButton()
+    var addFavLine = GMSPolyline()
+    var clearButton = UIButton()
+    var sum: Int = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,15 +88,25 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         routeButton.addTarget(self, action: #selector(SecondController.buttonPressed), for: UIControlEvents.touchUpInside)
         self.view.addSubview(routeButton)
         
-        polyButton = UIButton(type: .system)
-        polyButton.frame = CGRect(x: 110, y: 40, width: 100, height: 40)
-        polyButton.backgroundColor = UIColor.clear
-        polyButton.layer.cornerRadius = 5
-        polyButton.layer.borderWidth = 1
-        polyButton.layer.borderColor = UIColor.blue.cgColor
-        polyButton.setTitle("Clear", for: UIControlState.normal)
-        polyButton.addTarget(self, action: #selector(SecondController.polyPressed), for: UIControlEvents.touchUpInside)
-        self.view.addSubview(polyButton)
+        favButton = UIButton(type: .system)
+        favButton.frame = CGRect(x: 110, y: 40, width: 100, height: 40)
+        favButton.backgroundColor = UIColor.clear
+        favButton.layer.cornerRadius = 5
+        favButton.layer.borderWidth = 1
+        favButton.layer.borderColor = UIColor.blue.cgColor
+        favButton.setTitle("Add", for: UIControlState.normal)
+        favButton.addTarget(self, action: #selector(SecondController.addPoly), for: UIControlEvents.touchUpInside)
+        self.view.addSubview(favButton)
+        
+        clearButton = UIButton(type: .system)
+        clearButton.frame = CGRect(x: 110, y: 85, width: 100, height: 40)
+        clearButton.backgroundColor = UIColor.clear
+        clearButton.layer.cornerRadius = 5
+        clearButton.layer.borderWidth = 1
+        clearButton.layer.borderColor = UIColor.blue.cgColor
+        clearButton.setTitle("Clear", for: UIControlState.normal)
+        clearButton.addTarget(self, action: #selector(SecondController.clearLines), for: UIControlEvents.touchUpInside)
+        self.view.addSubview(clearButton)
         
         mapPolylines = UIButton(type: .system)
         mapPolylines.frame = CGRect(x: 215, y: 40, width: 100, height: 40)
@@ -85,7 +114,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         mapPolylines.layer.cornerRadius = 5
         mapPolylines.layer.borderWidth = 1
         mapPolylines.layer.borderColor = UIColor.blue.cgColor
-        mapPolylines.setTitle("Populate", for: UIControlState.normal)
+        mapPolylines.setTitle("Show", for: UIControlState.normal)
         mapPolylines.addTarget(self, action: #selector(SecondController.mapPolylinez), for: UIControlEvents.touchUpInside)
         self.view.addSubview(mapPolylines)
         
@@ -98,6 +127,28 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         deleteButton.setTitle("Delete", for: UIControlState.normal)
         deleteButton.addTarget(self, action: #selector(SecondController.clearAll), for: UIControlEvents.touchUpInside)
         self.view.addSubview(deleteButton)
+        
+        navButton = UIButton(type: .system)
+        navButton.frame = CGRect(x: 5, y: 575, width: 100, height: 40)
+        navButton.backgroundColor = UIColor.clear
+        navButton.layer.cornerRadius = 5
+        navButton.layer.borderWidth = 1
+        navButton.layer.borderColor = UIColor.blue.cgColor
+        navButton.setTitle("Navigate", for: UIControlState.normal)
+        navButton.addTarget(self, action: #selector(SecondController.navigate), for: UIControlEvents.touchUpInside)
+        self.view.addSubview(navButton)
+        
+        endButton = UIButton(type: .system)
+        endButton.frame = CGRect(x: 5, y: 575, width: 100, height: 40)
+        endButton.backgroundColor = UIColor.clear
+        endButton.layer.cornerRadius = 5
+        endButton.layer.borderWidth = 1
+        endButton.layer.borderColor = UIColor.blue.cgColor
+        endButton.setTitle("End", for: UIControlState.normal)
+        endButton.isEnabled = false
+        endButton.alpha = 0
+        endButton.addTarget(self, action: #selector(SecondController.endNavigate), for: UIControlEvents.touchUpInside)
+        self.view.addSubview(endButton)
     }
 
     override func didReceiveMemoryWarning() {
@@ -105,6 +156,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         // Dispose of any resources that can be recreated.
     }
     
+    /*
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus)
     {
         if status == CLAuthorizationStatus.authorizedWhenInUse
@@ -114,6 +166,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         }
         print("LOCATION MANAGER")
     }
+    */
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?)
     {
@@ -128,7 +181,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         }
     }
     
-    func getDirectionFromGoogle(startCoordinate: CLLocationCoordinate2D, toLocation: CLLocationCoordinate2D) {
+    func getDirectionFromGoogle(startCoordinate: CLLocationCoordinate2D, toLocation: CLLocationCoordinate2D)
+    {
+        var returnValue = 0
         var avoidances = ""
         if (!(switchPositioner!))
         {
@@ -139,12 +194,12 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         urlString = urlString.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)!
         let session = URLSession.shared
         let placesTask = session.dataTask(with: URL(string: urlString)!, completionHandler: {data, response, error in
-            if error != nil {
+            if error != nil
+            {
             }
             if let directions = (try? JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)) as? NSDictionary
             {
                 //print("JSON result: \(directions)")
-                self.theJson = directions
                 if let routes = directions["routes"] as? NSArray
                 {
                     if let legs = routes.value(forKey: "legs") as? NSArray
@@ -181,6 +236,10 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                             }
                         }
                     }
+                    returnValue = self.findTravelTime(theJson: directions)
+                    print("returned: \(returnValue)")
+                    self.sum = self.sum + returnValue
+                    print("Sum \(self.sum)")
                 }
             }
         })
@@ -188,11 +247,11 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         //blah.strokeWidth = 10.0
         //addPoly(polyline: blah)
         //blah.map = mapView
-        //findTravelTime()
         placesTask.resume()
     }
-    
-    func polyPressed()
+   
+    //clears Fav polys from map!
+    func clearLines()
     {
         for i in 0 ..< allPoly.count
         {
@@ -200,11 +259,14 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         }
     }
     
-    func addPoly(polyline: GMSPolyline)
+    //add's most recently routed poly to favPolys
+    func addPoly()
     {
-        allPoly.append(polyline)
+        addFavLine.strokeColor = generateRandomColor()
+        allPoly.append(addFavLine)
     }
     
+    //maps all of the favorited lines!
     func mapPolylinez()
     {
         for i in 0 ..< allPoly.count
@@ -213,17 +275,19 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         }
     }
     
+    //Empties all saved polys!
     func clearAll()
     {
         allPoly.removeAll()
     }
     
+    //routes a random polyline
     func buttonPressed()
     {
+        self.sum = 0
+        blah.map = nil
         var currPlace = currLocation
         let decider = arc4random_uniform(3) + 1
-        //print("first: \(decider)")
-        //let decider = 1
         var randomNum = generateRandom()
         var randomNum2 = generateRandom()
         if (decider == 1)
@@ -233,10 +297,8 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
             var newLong = currLocation.longitude - randomNum2
             var place = CLLocationCoordinate2DMake(newLat, newLong)
             getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-            
             currPlace = place
             let secondDecider = arc4random_uniform(1) + 1
-            //let secondDecider = 0
             if (secondDecider == 0)
             {
                 //latitude increases, longitude increases
@@ -246,7 +308,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
                 getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                
+                print("Field Sum: \(sum)")
                 currPlace = place
                 //latitude decreases, longitude increases
                 randomNum = generateRandom()
@@ -255,12 +317,11 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
                 getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                
                 currPlace = place
                 getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
                 
             }
-            else if decider == 1
+            else
             {
                 //latitude decreases, longitude decreases
                 randomNum = generateRandom()
@@ -432,11 +493,23 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             }
         }
-        blah = GMSPolyline(path: path)
-        blah.strokeWidth = 10.0
-        addPoly(polyline: blah)
-        blah.map = mapView
-        path.removeAllCoordinates()
+        sleep(1)
+        if (isCorrectMinutes())
+        {
+            print("printing map")
+            blah = GMSPolyline(path: path)
+            blah.strokeWidth = 10.0
+            blah.map = mapView
+            addFavLine = blah
+            path.removeAllCoordinates()
+        }
+        else
+        {
+            print("retrying route generation")
+            path.removeAllCoordinates()
+            self.buttonPressed()
+        }
+        
     }
     
     func generateRandom() -> Double
@@ -444,31 +517,101 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         return(Double(Double(arc4random()) / Double(UINT32_MAX))) / 10
     }
     
-    func findTravelTime()
+    func findTravelTime(theJson : NSDictionary) -> Int
     {
-        print("in travel time")
-        print(theJson)
+        var realTime = ""
+        var answer = 0
         if let routes = theJson["routes"] as? NSArray
         {
-            print("1")
             if let legs = routes.value(forKey: "legs") as? NSArray
             {
-                print("2")
                 if let duration = legs.value(forKey: "duration") as? NSArray
                 {
-                    print("3")
                     if let text = duration.value(forKey: "text") as? NSArray
                     {
-                        print("4")
-                        for i in 0 ..< text.count
+                        //print("text: \(text)")
+                        let c = (text[0])
+                        //print("c: \(c)")
+                        let cc = (c as AnyObject).object(at: 0) as! String
+                        //print(cc)
+                        if (cc[1] == " ")
                         {
-                            print("5")
-                            print(text[i])
+                            realTime = realTime + cc[0]
                         }
+                        else if (cc[2] == " ")
+                        {
+                            realTime = realTime + cc[0] + cc[1]
+                        }
+                        //print(realTime)
+                        let intNumber:Int? = Int(realTime)
+                        answer = intNumber!
+                        //print(answer)
                     }
                 }
             }
         }
+        return answer
+    }
+    
+    func navigate()
+    {
+        let newCam = GMSCameraPosition.camera(withLatitude: currLocation.latitude, longitude: currLocation.longitude, zoom: 20.0)
+        mapView.camera = newCam
+        endButton.isEnabled = true
+        endButton.alpha = 1
+        clearButton.isEnabled = false
+        clearButton.alpha = 0
+        favButton.isEnabled = false
+        favButton.alpha = 0
+        routeButton.isEnabled = false
+        routeButton.alpha = 0
+        deleteButton.isEnabled = false
+        deleteButton.alpha = 0
+        mapPolylines.isEnabled = false
+        mapPolylines.alpha = 0
+        navButton.alpha = 0
+        navButton.isEnabled = false
+        endButton.isEnabled = true
+        endButton.alpha = 1
+    }
+    
+    func endNavigate()
+    {
+        endButton.isEnabled = false
+        endButton.alpha = 0
+        favButton.isEnabled = true
+        favButton.alpha = 1
+        routeButton.isEnabled = true
+        routeButton.alpha = 1
+        deleteButton.isEnabled = true
+        deleteButton.alpha = 1
+        mapPolylines.isEnabled = true
+        mapPolylines.alpha = 1
+        navButton.alpha = 1
+        navButton.isEnabled = true
+        clearButton.isEnabled = true
+        clearButton.alpha = 1
+        let oldCam = GMSCameraPosition.camera(withLatitude: currLocation.latitude, longitude: currLocation.longitude, zoom: 15.0)
+        mapView.camera = oldCam
+    }
+    
+    func generateRandomColor() -> UIColor
+    {
+        let random1 : CGFloat = CGFloat(drand48())
+        let random2 : CGFloat = CGFloat(drand48())
+        let random3 : CGFloat = CGFloat(drand48())
+        return UIColor(red: random1, green: random2, blue: random3, alpha: 1.0)
+    }
+    
+    func isCorrectMinutes() -> Bool
+    {
+        if (sum >= numMinutes - 5 && sum <= numMinutes + 5)
+        {
+            print("Correct Length!")
+            return true
+        }
+        print("incorrect length!")
+        return false
     }
     
 }
