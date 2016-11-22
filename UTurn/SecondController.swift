@@ -50,8 +50,18 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     var thePath = GMSPolyline()
     var endButton = UIButton()
     var addFavLine = GMSPolyline()
+    var addFavPath = GMSMutablePath()
     var clearButton = UIButton()
     var sum: Int = 0
+    var monitor: Int = 0
+    var fPath = GMSMutablePath()
+    var sPath = GMSMutablePath()
+    var tPath = GMSMutablePath()
+    var finalPath = GMSMutablePath()
+    var fPoly = GMSPolyline()
+    var sPoly = GMSPolyline()
+    var tPoly = GMSPolyline()
+    var finalPoly = GMSPolyline()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -60,6 +70,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         mapView.camera = blah
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
         mapView.isMyLocationEnabled = true
         mapView.addObserver(self, forKeyPath: "myLocation", options: NSKeyValueObservingOptions.new, context: nil)
         currLocation = mapView.myLocation?.coordinate
@@ -149,6 +160,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         endButton.alpha = 0
         endButton.addTarget(self, action: #selector(SecondController.endNavigate), for: UIControlEvents.touchUpInside)
         self.view.addSubview(endButton)
+        locationManager.stopUpdatingLocation()
     }
 
     override func didReceiveMemoryWarning() {
@@ -156,33 +168,69 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         // Dispose of any resources that can be recreated.
     }
     
-    /*
+    
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus)
     {
         if status == CLAuthorizationStatus.authorizedWhenInUse
         {
             mapView.isMyLocationEnabled = true
+            //locationManager.startUpdatingLocation()
+            mapView.addObserver(self, forKeyPath: "myLocation", options: NSKeyValueObservingOptions.new, context: nil)
             currLocation = mapView.myLocation?.coordinate
+            didFindMyLocation = true
         }
         print("LOCATION MANAGER")
     }
-    */
-    
+ 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?)
     {
+        /*
+        let myLocation: CLLocation = change![NSKeyValueChangeKey.newKey] as! CLLocation
         if (didFindMyLocation == false)
         {
-            let myLocation: CLLocation = change![NSKeyValueChangeKey.newKey] as! CLLocation
             mapView.camera = GMSCameraPosition.camera(withTarget: myLocation.coordinate, zoom: 15.0)
             mapView.settings.myLocationButton = true
-            
             didFindMyLocation = true
             currLocation = mapView.myLocation?.coordinate
         }
+        var cam = GMSCameraPosition.camera(withTarget: myLocation.coordinate, zoom: 15.0)
+        
+        if (monitor == 1)
+        {
+            cam = GMSCameraPosition.camera(withTarget: myLocation.coordinate, zoom: 25.0)
+        }
+        mapView.animate(to: cam)
+        
+        print("WEIRD OBSERVER METHOD")
+ */
     }
     
-    func getDirectionFromGoogle(startCoordinate: CLLocationCoordinate2D, toLocation: CLLocationCoordinate2D)
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        var cam = GMSCameraPosition.camera(withLatitude: 39.8282, longitude: -98.5795, zoom: 25.0)
+        if (monitor == 1)
+        {
+            print("Updating Location Now")
+            if let location = locationManager.location?.coordinate
+            {
+                cam = GMSCameraPosition.camera(withTarget: location, zoom: 25.0)
+            }
+            mapView.animate(to: cam)
+        }
+        else
+        {
+            if let location = locationManager.location?.coordinate
+            {
+                cam = GMSCameraPosition.camera(withTarget: location, zoom: 15.0)
+            }
+            mapView.animate(to: cam)
+        }
+        currLocation = locationManager.location?.coordinate
+        print("UPDATING METHOD")
+    }
+    
+    func getDirectionFromGoogle(startCoordinate: CLLocationCoordinate2D, toLocation: CLLocationCoordinate2D) -> GMSMutablePath
     {
+        let thePath = GMSMutablePath()
         var returnValue = 0
         var avoidances = ""
         if (!(switchPositioner!))
@@ -223,7 +271,8 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                                                             let gmsPath = GMSPath(fromEncodedPath: points)
                                                             for index in 0 ..< gmsPath!.count() {
                                                                 let coordinate = gmsPath!.coordinate(at: index)
-                                                                self.path.add(coordinate)
+                                                                //self.path.add(coordinate)
+                                                                thePath.add(coordinate)
                                                                 //print(coordinate)
                                                             }
                                                         }
@@ -248,6 +297,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         //addPoly(polyline: blah)
         //blah.map = mapView
         placesTask.resume()
+        return thePath
     }
    
     //clears Fav polys from map!
@@ -278,6 +328,10 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     //Empties all saved polys!
     func clearAll()
     {
+        for i in 0 ..< allPoly.count
+        {
+            allPoly[i].map = nil
+        }
         allPoly.removeAll()
     }
     
@@ -286,6 +340,10 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     {
         self.sum = 0
         blah.map = nil
+        //fPoly.map = nil
+        //sPoly.map = nil
+        //tPoly.map = nil
+        //finalPoly.map = nil
         var currPlace = currLocation
         let decider = arc4random_uniform(3) + 1
         var randomNum = generateRandom()
@@ -296,7 +354,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
             var newLat = currLocation.latitude + randomNum
             var newLong = currLocation.longitude - randomNum2
             var place = CLLocationCoordinate2DMake(newLat, newLong)
-            getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             currPlace = place
             let secondDecider = arc4random_uniform(1) + 1
             if (secondDecider == 0)
@@ -307,7 +365,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 print("Field Sum: \(sum)")
                 currPlace = place
                 //latitude decreases, longitude increases
@@ -316,9 +374,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
                 
             }
             else
@@ -329,7 +387,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude decreases, longitude increases
                 randomNum = generateRandom()
@@ -337,9 +395,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
             }
         }
         else if decider == 2
@@ -348,7 +406,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
             var newLat = currLocation.latitude + randomNum
             var newLong = currLocation.longitude + randomNum2
             var place = CLLocationCoordinate2DMake(newLat, newLong)
-            getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             currPlace = place
             let secondDecider = arc4random_uniform(1) + 1
             if (secondDecider == 0)
@@ -359,7 +417,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude decreases, longitude decreases
                 randomNum = generateRandom()
@@ -367,9 +425,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
             }
             else
             {
@@ -379,7 +437,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude decrease, longitude decrease
                 randomNum = generateRandom()
@@ -387,9 +445,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                finalPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             }
         }
         else if decider == 3
@@ -398,7 +456,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
             var newLat = currLocation.latitude - randomNum
             var newLong = currLocation.longitude + randomNum2
             var place = CLLocationCoordinate2DMake(newLat, newLong)
-            getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             currPlace = place
             let secondDecider = arc4random_uniform(1) + 1
             if (secondDecider == 0)
@@ -409,7 +467,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude increases, longitude decreases
                 randomNum = generateRandom()
@@ -417,9 +475,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
             }
             else
             {
@@ -429,7 +487,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude increase, longitude decrease
                 randomNum = generateRandom()
@@ -437,9 +495,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                finalPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             }
         }
         else if decider == 4
@@ -448,7 +506,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
             var newLat = currLocation.latitude - randomNum
             var newLong = currLocation.longitude - randomNum2
             var place = CLLocationCoordinate2DMake(newLat, newLong)
-            getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             currPlace = place
             let secondDecider = arc4random_uniform(1) + 1
             print("second: \(secondDecider)")
@@ -460,7 +518,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude increases, longitude increases
                 randomNum = generateRandom()
@@ -468,9 +526,9 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! - randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
             }
             else
             {
@@ -480,7 +538,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! - randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
                 //latitude increase, longitude increase
                 randomNum = generateRandom()
@@ -488,25 +546,67 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
                 newLat = (currPlace?.latitude)! + randomNum
                 newLong = (currPlace?.longitude)! + randomNum2
                 place = CLLocationCoordinate2DMake(newLat, newLong)
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
                 currPlace = place
-                getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                finalPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
             }
         }
         sleep(1)
         if (isCorrectMinutes())
         {
             print("printing map")
-            blah = GMSPolyline(path: path)
+            /*blah = GMSPolyline(path: path)
             blah.strokeWidth = 10.0
             blah.map = mapView
             addFavLine = blah
             path.removeAllCoordinates()
+ */
+            fPoly = GMSPolyline(path: fPath)
+            sPoly = GMSPolyline(path: sPath)
+            tPoly = GMSPolyline(path: tPath)
+            finalPoly = GMSPolyline(path:finalPath)
+            //fPoly.strokeWidth = 10.0
+            //fPoly.map = mapView
+            //fPoly.strokeColor = UIColor.blue
+            //sPoly.strokeWidth = 10.0
+            //sPoly.map = mapView
+            //sPoly.strokeColor = UIColor.red
+            //tPoly.strokeWidth = 10.0
+            //tPoly.map = mapView
+            //tPoly.strokeColor = UIColor.orange
+            //finalPoly.strokeWidth = 10.0
+            //finalPoly.map = mapView
+            //finalPoly.strokeColor = UIColor.yellow
+            addFavPath = fPath
+            for index in 0 ..< sPath.count()
+            {
+                addFavPath.add(sPath.coordinate(at: index))
+            }
+            for index in 0 ..< tPath.count()
+            {
+                addFavPath.add(tPath.coordinate(at: index))
+            }
+            for index in 0 ..< finalPath.count()
+            {
+                addFavPath.add(finalPath.coordinate(at: index))
+            }
+            blah = GMSPolyline(path: addFavPath)
+            addFavLine = blah
+            addFavLine.strokeWidth = 10.0
+            addFavLine.map = mapView
+            fPath.removeAllCoordinates()
+            sPath.removeAllCoordinates()
+            tPath.removeAllCoordinates()
+            finalPath.removeAllCoordinates()
         }
         else
         {
             print("retrying route generation")
-            path.removeAllCoordinates()
+            fPath.removeAllCoordinates()
+            sPath.removeAllCoordinates()
+            tPath.removeAllCoordinates()
+            finalPath.removeAllCoordinates()
+            //path.removeAllCoordinates()
             self.buttonPressed()
         }
         
@@ -514,7 +614,18 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     
     func generateRandom() -> Double
     {
-        return(Double(Double(arc4random()) / Double(UINT32_MAX))) / 10
+        if (numMinutes > 30)
+        {
+            return(Double(Double(arc4random()) / Double(UINT32_MAX))) / 10
+        }
+        else if (numMinutes < 30 && numMinutes > 15)
+        {
+            return(Double(Double(arc4random()) / Double(UINT32_MAX))) / 50
+        }
+        else
+        {
+            return(Double(Double(arc4random()) / Double(UINT32_MAX))) / 100
+        }
     }
     
     func findTravelTime(theJson : NSDictionary) -> Int
@@ -555,6 +666,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     
     func navigate()
     {
+        monitor = 1
         let newCam = GMSCameraPosition.camera(withLatitude: currLocation.latitude, longitude: currLocation.longitude, zoom: 20.0)
         mapView.camera = newCam
         endButton.isEnabled = true
@@ -573,10 +685,12 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         navButton.isEnabled = false
         endButton.isEnabled = true
         endButton.alpha = 1
+        locationManager.startUpdatingLocation()
     }
     
     func endNavigate()
     {
+        monitor = 0
         endButton.isEnabled = false
         endButton.alpha = 0
         favButton.isEnabled = true
@@ -593,6 +707,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         clearButton.alpha = 1
         let oldCam = GMSCameraPosition.camera(withLatitude: currLocation.latitude, longitude: currLocation.longitude, zoom: 15.0)
         mapView.camera = oldCam
+        locationManager.stopUpdatingLocation()
     }
     
     func generateRandomColor() -> UIColor
