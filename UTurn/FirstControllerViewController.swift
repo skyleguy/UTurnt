@@ -20,7 +20,6 @@ class FirstControllerViewController: UIViewController, UIPickerViewDelegate, UIP
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
     }
 
     override func didReceiveMemoryWarning() {
@@ -37,9 +36,6 @@ class FirstControllerViewController: UIViewController, UIPickerViewDelegate, UIP
         defaults.set(selected, forKey: "drivingMethod")
         defaults.set(numberMinutes, forKey: "numMinutes")
         defaults.set(switchCheck, forKey: "switchPosition")
-        //print("Travel type selected is \(selected)")
-        //print("Number of minutes to travel is \(numberMinutes)")
-        //print("The switch is set to the \(switchCheck) position")
     }
     
     @IBAction func textFieldDoneEditing( sender: UITextField)
