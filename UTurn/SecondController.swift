@@ -31,7 +31,10 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     
     @IBOutlet weak var mapView: GMSMapView!
     
-    var spin = UIActivityIndicatorView()
+    private let rootKey = "rootKey"
+    
+    var alreadyAdded = false
+    var polyCount: Int = 0
     let locationManager = CLLocationManager()
     var currLocation: CLLocationCoordinate2D!
     var keyy = "AIzaSyBqm3VZ-er33Z6Pp6FI0d9KtKIBLpxcNjs"
@@ -64,6 +67,8 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     var tPoly = GMSPolyline()
     var finalPoly = GMSPolyline()
     var endPoint = GMSMarker()
+    var dFav = UIButton()
+    
 
     //1
     override func viewDidLoad() {
@@ -151,10 +156,17 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         self.view.addSubview(endButton)
         locationManager.stopUpdatingLocation()
         
-        spin = UIActivityIndicatorView(activityIndicatorStyle: UIActivityIndicatorViewStyle.gray)
-        spin.center = view.center
-        spin.hidesWhenStopped = true
-        self.view.addSubview(spin)
+        dFav = UIButton(type: .system)
+        dFav.frame = CGRect(x: 215, y: 85, width: 100, height: 40)
+        dFav.backgroundColor = UIColor.clear
+        dFav.layer.cornerRadius = 5
+        dFav.layer.borderWidth = 1
+        dFav.layer.borderColor = UIColor.blue.cgColor
+        dFav.setTitle("Delete Fav", for: UIControlState.normal)
+        dFav.isEnabled = true
+        dFav.alpha = 1
+        dFav.addTarget(self, action: #selector(SecondController.deleteFav), for: UIControlEvents.touchUpInside)
+        self.view.addSubview(dFav)
     }
 
     //no idea when this is run
@@ -291,6 +303,31 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         return thePath
     }
    
+    func deleteFav()
+    {
+        if (allPoly.count > 0 && polyCount != 0)
+        {
+            allPoly[polyCount - 1].map = nil
+            allPoly.remove(at: polyCount - 1)
+            print("i removed the poly at index \(polyCount - 1)")
+            if (polyCount - 1 == allPoly.count)
+            {
+                polyCount = polyCount - 1
+                print("polyCount is now \(polyCount)")
+            }
+        }
+        else if (allPoly.count > 0 && polyCount != allPoly.count + 1 && polyCount != 0)
+        {
+            allPoly[0].map = nil
+            allPoly.remove(at: 0)
+        }
+        if (allPoly.count == 1)
+        {
+            allPoly[0].map = nil
+            allPoly.remove(at: 0)
+        }
+    }
+    
     //clears Fav polys from map!
     func clearLines()
     {
@@ -299,25 +336,63 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
             allPoly[i].map = nil
         }
         endPoint.map = nil
-
+        polyCount = 0
     }
     
     //add's most recently routed poly to favPolys
     func addPoly()
     {
-        addFavLine.strokeColor = generateRandomColor()
-        allPoly.append(addFavLine)
-        endPoint.map = nil
+        if (alreadyAdded == false)
+        {
+            addFavLine.strokeColor = generateRandomColor()
+            allPoly.append(addFavLine)
+            endPoint.map = nil
+            alreadyAdded = true
+        }
     }
     
-    //maps all of the favorited lines!
+    //maps all of the favorited lines, line by line, until all of them 
     func mapPolylinez()
     {
+        if (polyCount == 0)
+        {
+            for i in 0 ..< allPoly.count
+            {
+                allPoly[i].map = nil
+                //print("cleared all lines because we reset")
+            }
+        }
         for i in 0 ..< allPoly.count
         {
-            allPoly[i].map = mapView
+            if (polyCount == i && i != 0)
+            {
+                allPoly[i - 1].map = nil
+                allPoly[i].map = mapView
+                //print("mapped a new line and cleared the one behind me")
+            }
+            else if (polyCount == i && i == 0)
+            {
+                allPoly[i].map = mapView
+                //print("mapped a new line because im the first")
+            }
         }
-        endPoint.map = nil
+        if (polyCount == allPoly.count)
+        {
+            //print("mapping all lines because we went over by one")
+            for i in 0 ..< allPoly.count
+            {
+                allPoly[i].map = mapView
+            }
+            polyCount = -1
+        }
+        
+        if (polyCount > allPoly.count)
+        {
+            polyCount = -1
+        }
+        polyCount = polyCount + 1
+        print("poly count \(polyCount)")
+        print("all poly count \(allPoly.count)")
     }
     
     //Empties all saved polys!
@@ -329,11 +404,13 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         }
         allPoly.removeAll()
         endPoint.map = nil
+        polyCount = 0
     }
     
     //routes a random polyline
     func buttonPressed()
     {
+        alreadyAdded = false
         getValues()
         endPoint.title = ""
         endPoint.map = nil
@@ -556,7 +633,6 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         sleep(1)
         if (isCorrectMinutes())
         {
-            self.spin.stopAnimating()
             print("printing map")
             fPoly = GMSPolyline(path: fPath)
             sPoly = GMSPolyline(path: sPath)
@@ -717,6 +793,8 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         clearButton.alpha = 0
         favButton.isEnabled = false
         favButton.alpha = 0
+        dFav.isEnabled = false
+        dFav.alpha = 0
         routeButton.isEnabled = false
         routeButton.alpha = 0
         deleteButton.isEnabled = false
@@ -737,6 +815,8 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         endButton.alpha = 0
         favButton.isEnabled = true
         favButton.alpha = 1
+        dFav.isEnabled = true
+        dFav.alpha = 1
         routeButton.isEnabled = true
         routeButton.alpha = 1
         deleteButton.isEnabled = true
@@ -789,4 +869,10 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         drivingMethoder = drivingMethod as! String
     }
     
+    func dataFilePath() -> String
+    {
+        let paths = NSSearchPathForDirectoriesInDomains(FileManager.SearchPathDirectory.documentDirectory, FileManager.SearchPathDomainMask.userDomainMask, true)
+        let documentsDirectory = paths[0] as NSString
+        return documentsDirectory.appendingPathComponent("data.archive") as String
+    }
 }
