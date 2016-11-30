@@ -27,11 +27,10 @@ extension String {
     }
 }
 
-class SecondController: UIViewController, CLLocationManagerDelegate {
+class SecondController: UIViewController, CLLocationManagerDelegate
+{
     
     @IBOutlet weak var mapView: GMSMapView!
-    
-    private let rootKey = "rootKey"
     
     var alreadyAdded = false
     var polyCount: Int = 0
@@ -68,7 +67,7 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
     var finalPoly = GMSPolyline()
     var endPoint = GMSMarker()
     var dFav = UIButton()
-    
+    var currPlace : CLLocationCoordinate2D!
 
     //1
     override func viewDidLoad() {
@@ -406,7 +405,6 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         endPoint.map = nil
         polyCount = 0
     }
-    
     //routes a random polyline
     func buttonPressed()
     {
@@ -417,217 +415,100 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         endPoint = GMSMarker()
         self.sum = 0
         blah.map = nil
-        var currPlace = currLocation
+        currPlace = currLocation
         let decider = arc4random_uniform(3) + 1
-        var randomNum = generateRandom()
-        var randomNum2 = generateRandom()
         if (decider == 1)
         {
             //latitude increases, longitude goes down
-            var newLat = currLocation.latitude + randomNum
-            var newLong = currLocation.longitude - randomNum2
-            var place = CLLocationCoordinate2DMake(newLat, newLong)
-            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-            currPlace = place
+            whichDirection(firstNum: 1, secondNum: -1, pathNum: 1)
             let secondDecider = arc4random_uniform(1) + 1
             print("second decider is: \(secondDecider)")
             if (secondDecider == 0)
             {
                 //latitude increases, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                whichDirection(firstNum: 1, secondNum: 1, pathNum: 2)
                 print("Field Sum: \(sum)")
-                currPlace = place
                 //latitude decreases, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
-                
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 3)
+                whichDirection(firstNum: -1, secondNum: -1, pathNum: 4)
             }
             else
             {
                 //latitude decreases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
+                whichDirection(firstNum: -1, secondNum: -1, pathNum: 2)
                 //latitude decreases, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 3)
+                whichDirection(firstNum: 1, secondNum: 1, pathNum: 4)
             }
         }
         else if (decider == 2)
         {
             //latitude increases, longitude increases
-            var newLat = currLocation.latitude + randomNum
-            var newLong = currLocation.longitude + randomNum2
-            var place = CLLocationCoordinate2DMake(newLat, newLong)
-            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-            currPlace = place
+            whichDirection(firstNum: 1, secondNum: 1, pathNum: 1)
             let secondDecider = arc4random_uniform(1) + 1
             if (secondDecider == 0)
             {
                 //latitude increases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                whichDirection(firstNum: 1, secondNum: -1, pathNum: 2)
                 print("Field Sum: \(sum)")
-                currPlace = place
                 //latitude decreases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                whichDirection(firstNum: -1, secondNum: -1, pathNum: 3)
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 4)
                 
             }
             else
             {
                 //latitude decreases, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 2)
                 //latitude decreases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                whichDirection(firstNum: -1, secondNum: -1, pathNum: 3)
+                whichDirection(firstNum: 1, secondNum: -1, pathNum: 4)
             }
         }
         else if (decider == 3)
         {
             //latitude decreases, longitude increases
-            var newLat = currLocation.latitude - randomNum
-            var newLong = currLocation.longitude + randomNum2
-            var place = CLLocationCoordinate2DMake(newLat, newLong)
-            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-            currPlace = place
+            whichDirection(firstNum: -1, secondNum: 1, pathNum: 1)
             let secondDecider = arc4random_uniform(1) + 1
             if (secondDecider == 0)
             {
                 //latitude increases, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                whichDirection(firstNum: 1, secondNum: 1, pathNum: 2)
                 print("Field Sum: \(sum)")
-                currPlace = place
                 //latitude increases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
-                
+                whichDirection(firstNum: 1, secondNum: -1, pathNum: 3)
+                whichDirection(firstNum: -1, secondNum: -1, pathNum: 4)
             }
             else
             {
                 //latitude decreases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
+                whichDirection(firstNum: -1, secondNum: -1, pathNum: 2)
                 //latitude increases, longitude decreases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                whichDirection(firstNum: 1, secondNum: -1, pathNum: 3)
+                whichDirection(firstNum: 1, secondNum: 1, pathNum: 4)
             }
         }
         else if (decider == 4)
         {
             //latitude decreases, longitude decreases
-            var newLat = currLocation.latitude - randomNum
-            var newLong = currLocation.longitude - randomNum2
-            var place = CLLocationCoordinate2DMake(newLat, newLong)
-            fPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-            currPlace = place
+            whichDirection(firstNum: -1, secondNum: -1, pathNum: 1)
             let secondDecider = arc4random_uniform(1) + 1
             if (secondDecider == 0)
             {
                 //latitude decrease, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! - randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 2)
                 print("Field Sum: \(sum)")
-                currPlace = place
                 //latitude increases, longitude increases
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
-                
+                whichDirection(firstNum: 1, secondNum: 1, pathNum: 3)
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 4)
             }
             else
             {
                 //latitude increase, longitude decrease
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! - randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                sPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
+                whichDirection(firstNum: 1, secondNum: -1, pathNum: 2)
                 //latitude increase, longitude increase
-                randomNum = generateRandom()
-                randomNum2 = generateRandom()
-                newLat = (currPlace?.latitude)! + randomNum
-                newLong = (currPlace?.longitude)! + randomNum2
-                place = CLLocationCoordinate2DMake(newLat, newLong)
-                tPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
-                currPlace = place
-                finalPath = getDirectionFromGoogle(startCoordinate: place, toLocation: currLocation)
+                whichDirection(firstNum: 1, secondNum: 1, pathNum: 3)
+                whichDirection(firstNum: -1, secondNum: 1, pathNum: 4)
             }
         }
         sleep(1)
@@ -869,10 +750,55 @@ class SecondController: UIViewController, CLLocationManagerDelegate {
         drivingMethoder = drivingMethod as! String
     }
     
-    func dataFilePath() -> String
+    func whichDirection(firstNum: Int, secondNum: Int, pathNum: Int)
     {
-        let paths = NSSearchPathForDirectoriesInDomains(FileManager.SearchPathDirectory.documentDirectory, FileManager.SearchPathDomainMask.userDomainMask, true)
-        let documentsDirectory = paths[0] as NSString
-        return documentsDirectory.appendingPathComponent("data.archive") as String
+        let randomNum = generateRandom()
+        let randomNum2 = generateRandom()
+        var newLat : Double
+        var newLong : Double
+        
+        if (firstNum < 0 && secondNum < 0)
+        {
+            newLat = currLocation.latitude - randomNum
+            newLong = currLocation.longitude - randomNum2
+        }
+        else if (firstNum < 0 && secondNum > 0)
+        {
+            newLat = currLocation.latitude - randomNum
+            newLong = currLocation.longitude + randomNum2
+        }
+        else if (firstNum > 0 && secondNum < 0)
+        {
+            newLat = currLocation.latitude + randomNum
+            newLong = currLocation.longitude - randomNum2
+        }
+        else
+        {
+            newLat = currLocation.latitude + randomNum
+            newLong = currLocation.longitude + randomNum2
+        }
+        if (pathNum < 4)
+        {
+            let place = CLLocationCoordinate2DMake(newLat, newLong)
+            let aPath = getDirectionFromGoogle(startCoordinate: currPlace!, toLocation: place)
+            currPlace = place
+            if (pathNum == 1)
+            {
+                fPath = aPath
+            }
+            else if (pathNum == 2)
+            {
+                sPath = aPath
+            }
+            else if (pathNum == 3)
+            {
+                tPath = aPath
+            }
+        }
+        else if (pathNum == 4)
+        {
+            finalPath = getDirectionFromGoogle(startCoordinate: currPlace, toLocation: currLocation)
+        }
     }
+    
 }
